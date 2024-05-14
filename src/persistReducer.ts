@@ -32,7 +32,7 @@ const DEFAULT_TIMEOUT = 5000
   - persisting a reducer which has nested _persist
   - handling actions that fire before reydrate is called
 */
-export default function persistReducer<S extends KeyAccessState, A extends Action>(
+export default function persistReducer<S, A extends Action>(
   config: PersistConfig<S>,
   baseReducer: Reducer<S, A>
 ): Reducer<S & PersistPartial> {

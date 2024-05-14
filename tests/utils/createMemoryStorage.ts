@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Storage } from "../../src/types"
+import { PersistState, Storage } from "../../src/types"
 
 interface StateObj {
-  [key: string]: any;
+  [key: string]: unknown;
+  _persist: PersistState;
 }
 
-export function createMemoryStorage():Storage {
+export function createMemoryStorage<S>():Storage<S> {
   const state: StateObj = {}
   return {
-    getItem(key: string): Promise<string> {
+    getItem(key) {
       return Promise.resolve(state[key])
     },
-    setItem(key: string, value: any): Promise<void> {
+    setItem(key, value): Promise<unknown> {
       state[key] = value
       return Promise.resolve(value)
     },

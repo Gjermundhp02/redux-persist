@@ -32,7 +32,7 @@ export interface KeyAccessState {
  */
 export interface PersistConfig<S, RS = any, HSS = any, ESS = any> {
   version?: number;
-  storage: Storage;
+  storage: Storage<S>;
   key: string;
   /**
    * @deprecated keyPrefix is going to be removed in v6.
@@ -60,27 +60,27 @@ export interface PersistorOptions {
   manualPersist?: boolean;
 }
 
-export interface Storage {
-  getItem(key: string, ...args: Array<any>): any;
-  setItem(key: string, value: any, ...args: Array<any>): any;
-  removeItem(key: string, ...args: Array<any>): any;
+export interface Storage<S> {
+  getItem<K extends keyof S>(key: K, ...args: Array<unknown>): Promise<S[K] | undefined>;
+  setItem<K extends keyof S>(key: K, value: S[K], ...args: Array<unknown>): Promise<void>;
+  removeItem<K extends keyof S>(key: K, ...args: Array<unknown>): Promise<void>;
   keys?: Array<string>;
-  getAllKeys(cb?: any): any;
+  getAllKeys(cb?: any): Promise<unknown>;
 }
 
-export interface WebStorage extends Storage {
+export interface WebStorage<S> extends Storage<S> {
   /**
    * @desc Fetches key and returns item in a promise.
    */
-  getItem(key: string): Promise<string | null>;
+  getItem<K extends keyof S>(key: K): Promise<S[K] | undefined>;
   /**
    * @desc Sets value for key and returns item in a promise.
    */
-  setItem(key: string, item: string): Promise<void>;
+  setItem<K extends keyof S>(key: K, item: S[K]): Promise<void>;
   /**
    * @desc Removes value for key.
    */
-  removeItem(key: string): Promise<void>;
+  removeItem<K extends keyof S>(key: K): Promise<void>;
 }
 
 export interface MigrationManifest<S> {

@@ -4,15 +4,17 @@ import persistReducer from './persistReducer'
 import autoMergeLevel2 from './stateReconciler/autoMergeLevel2'
 
 import type { 
-  PersistConfig
+  PersistConfig,
+  PersistedState
 } from './types'
 
 // combineReducers + persistReducer with stateReconciler defaulted to autoMergeLevel2
+// Combines the reducers and returns a persitReducer
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function persistCombineReducers<S, A extends Action>(
-  config: PersistConfig<any>,
-  reducers: ReducersMapObject<S, A>
-): Reducer<any, UnknownAction> {
+export default function persistCombineReducers<S>(
+  config: PersistConfig<S>,
+  reducers: S
+): ReturnType<typeof persistReducer> {
   config.stateReconciler =
     config.stateReconciler === undefined
       ? autoMergeLevel2
