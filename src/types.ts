@@ -11,7 +11,7 @@ export interface PersistState {
 
 export type PersistedState = {
   _persist: PersistState;
-} | undefined;
+};
 
 export type PersistMigrate =
   (state: PersistedState, currentVersion: number) => Promise<PersistedState>;
@@ -20,7 +20,7 @@ export type StateReconciler<S> =
   (inboundState: any, state: S, reducedState: S, config: PersistConfig<S>) => S;
 
 export interface KeyAccessState {
-  [key: string]: any;
+  [key: string]: object;
 }
 
 /**
@@ -83,8 +83,8 @@ export interface WebStorage extends Storage {
   removeItem(key: string): Promise<void>;
 }
 
-export interface MigrationManifest {
-  [key: string]: (state: PersistedState) => PersistedState;
+export interface MigrationManifest<S> {
+  [key: string]: (state: S & PersistedState) => S & PersistedState;
 }
 
 /**

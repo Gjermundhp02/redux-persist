@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  Action, AnyAction, Reducer
+  Action, Reducer,
+  UnknownAction
 } from 'redux'
 
 import {
@@ -13,6 +14,7 @@ import {
 } from './constants'
 
 import type {
+    KeyAccessState,
   PersistConfig,
   PersistState,
   Persistoid,
@@ -23,17 +25,17 @@ import createPersistoid from './createPersistoid'
 import defaultGetStoredState from './getStoredState'
 import purgeStoredState from './purgeStoredState'
 
-type PersistPartial = { _persist: PersistState } | any;
+type PersistPartial = { _persist: PersistState };
 const DEFAULT_TIMEOUT = 5000
 /*
   @TODO add validation / handling for:
   - persisting a reducer which has nested _persist
   - handling actions that fire before reydrate is called
 */
-export default function persistReducer<S, A extends Action>(
+export default function persistReducer<S extends KeyAccessState, A extends Action>(
   config: PersistConfig<S>,
   baseReducer: Reducer<S, A>
-): Reducer<S & PersistPartial, AnyAction> {
+): Reducer<S & PersistPartial> {
   if (process.env.NODE_ENV !== 'production') {
     if (!config) throw new Error('config is required for persistReducer')
     if (!config.key) throw new Error('key is required in persistor config')
@@ -131,7 +133,7 @@ export default function persistReducer<S, A extends Action>(
           if (restoredState) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const migrate = config.migrate || ((s, _) => Promise.resolve(s))
-            migrate(restoredState as any, version).then(
+            migrate(restoredState, version).then(
               migratedState => {
                 _rehydrate(migratedState)
               },

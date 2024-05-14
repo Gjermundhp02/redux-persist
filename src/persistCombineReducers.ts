@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Action, AnyAction, CombinedState, combineReducers, Reducer, ReducersMapObject } from 'redux'
+import { Action, combineReducers, Reducer, ReducersMapObject, UnknownAction } from 'redux'
 import persistReducer from './persistReducer'
 import autoMergeLevel2 from './stateReconciler/autoMergeLevel2'
 
@@ -11,8 +11,8 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function persistCombineReducers<S, A extends Action>(
   config: PersistConfig<any>,
-  reducers: ReducersMapObject<CombinedState<S>, Action<any>>
-): Reducer<any, AnyAction> {
+  reducers: ReducersMapObject<S, A>
+): Reducer<any, UnknownAction> {
   config.stateReconciler =
     config.stateReconciler === undefined
       ? autoMergeLevel2

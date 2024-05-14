@@ -3,8 +3,8 @@ import { DEFAULT_VERSION } from './constants'
 
 import type { PersistedState, MigrationManifest } from './types'
 
-export default function createMigrate(
-  migrations: MigrationManifest,
+export default function createMigrate<S>(
+  migrations: MigrationManifest<S>,
   config?: { debug: boolean }
 ): (state: PersistedState, currentVersion: number) => Promise<PersistedState> {
   const { debug } = config || {}
@@ -12,11 +12,12 @@ export default function createMigrate(
     state: PersistedState,
     currentVersion: number
   ): Promise<PersistedState> {
-    if (!state) {
-      if (process.env.NODE_ENV !== 'production' && debug)
-        console.log('redux-persist: no inbound state, skipping migration')
-      return Promise.resolve(undefined)
-    }
+    // State is allways defined, so this check is not needed
+    // if (!state) {
+    //   if (process.env.NODE_ENV !== 'production' && debug)
+    //     console.log('redux-persist: no inbound state, skipping migration')
+    //   return Promise.resolve(undefined)
+    // }
 
     const inboundVersion: number =
       state._persist && state._persist.version !== undefined

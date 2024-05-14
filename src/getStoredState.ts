@@ -29,7 +29,7 @@ export default function getStoredState(
         Object.keys(rawState).forEach(key => {
           state[key] = transforms.reduceRight((subState, transformer) => {
             return transformer.out(subState, key, rawState)
-          }, deserialize(rawState[key]))
+          }, deserialize(rawState[key])) // Why is rawstate being deserialized again?
         })
         return state
       } catch (err) {
