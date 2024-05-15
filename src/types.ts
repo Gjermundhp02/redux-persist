@@ -5,13 +5,17 @@ import { REHYDRATE, REGISTER } from './constants'
 import { StoreEnhancer } from "redux";
 
 export interface PersistState {
-  version: number;
-  rehydrated: boolean;
+    version: number;
+    rehydrated: boolean;
 }
 
 export type PersistedState = {
   _persist: PersistState;
 };
+
+export type State<S = {[key: string]: object}> = {
+    [K in keyof S]: S[K]&PersistedState;
+}
 
 export type PersistMigrate =
   (state: PersistedState, currentVersion: number) => Promise<PersistedState>;
@@ -19,20 +23,29 @@ export type PersistMigrate =
 export type StateReconciler<S> =
   (inboundState: any, state: S, reducedState: S, config: PersistConfig<S>) => S;
 
-export interface KeyAccessState {
-  [key: string]: object;
+// S is the reudx reducers/redux state
+export interface KeyAccessState<S> {
+  [key: string]: State<S>;
 }
+
+// {
+//     key: {
+//         reducer-states: {
+//             _persist
+//             reducer:keys
+//         }
+//     } // A key that defines the spesific store
+
+// }
 
 /**
  * @desc
- * `HSS` means HydratedSubState
- * `ESS` means EndSubState
- * `S` means State
- * `RS` means RawState
+ * `S` means State, the state redux uses
+ * `RS` means RawState, the state stored in the storage
  */
-export interface PersistConfig<S, RS = any, HSS = any, ESS = any> {
+export interface PersistConfig<S = {[key: string]: object}, RS = {[K in keyof S]: object}> {
   version?: number;
-  storage: Storage<S>;
+  storage: Storage<S, RS>;
   key: string;
   /**
    * @deprecated keyPrefix is going to be removed in v6.
@@ -40,17 +53,17 @@ export interface PersistConfig<S, RS = any, HSS = any, ESS = any> {
   keyPrefix?: string;
   blacklist?: Array<string>;
   whitelist?: Array<string>;
-  transforms?: Array<Transform<HSS, ESS, S, RS>>;
+  transforms?: Array<Transform<S, RS>>;
   throttle?: number;
   migrate?: PersistMigrate;
   stateReconciler?: false | StateReconciler<S>;
   /**
    * @desc Used for migrations.
    */
-  getStoredState?: (config: PersistConfig<S, RS, HSS, ESS>) => Promise<PersistedState>;
+  getStoredState?: (config: PersistConfig<S, RS>) => Promise<State<S>>;
   debug?: boolean;
-  serialize?: boolean;
-  deserialize?: boolean | ((x: any) => any);
+  serialize?: ((x: State<RS>) => any);
+  deserialize?: ((x: any) => State<RS>);
   timeout?: number;
   writeFailHandler?: (err: Error) => void;
 }
@@ -60,10 +73,10 @@ export interface PersistorOptions {
   manualPersist?: boolean;
 }
 
-export interface Storage<S> {
-  getItem<K extends keyof S>(key: K, ...args: Array<unknown>): Promise<S[K] | undefined>;
-  setItem<K extends keyof S>(key: K, value: S[K], ...args: Array<unknown>): Promise<void>;
-  removeItem<K extends keyof S>(key: K, ...args: Array<unknown>): Promise<void>;
+export interface Storage<S, RS> {
+  getItem<K extends keyof KeyAccessState<RS>>(key: K, ...args: Array<unknown>): Promise<KeyAccessState<RS>[K] | undefined>;
+  setItem<K extends keyof KeyAccessState<S>>(key: K, value: KeyAccessState<S>[K], ...args: Array<unknown>): Promise<void>;
+  removeItem<K extends keyof RS>(key: K, ...args: Array<unknown>): Promise<void>;
   keys?: Array<string>;
   getAllKeys(cb?: any): Promise<unknown>;
 }
@@ -98,17 +111,24 @@ export type TransformInbound<SS, ESS, S = any> =
 
 /**
  * @desc
+ * From storage to state
  * `SS` means SubState
  * `HSS` means HydratedSubState
  * `RS` means RawState
  */
-export type TransformOutbound<SS, HSS, RS = any> =
-  (state: SS, key: keyof RS, rawState: RS) => HSS;
+export type TransformOutbound<S extends {[key: string]: extendsobject}, RS = {[K in keyof S]: object}> =
+  (state: State<RS>, key: keyof RS, rawState: State<RS>) => State<S>[keyof RS];
 
-export interface Transform<HSS, ESS, S = any, RS = any> {
-  in: TransformInbound<HSS, ESS, S>;
-  out: TransformOutbound<ESS, HSS, RS>;
+const r: TransformOutbound = (state, key, rawState) => {
+    return state[key];
 }
+r({a: {_persist: {version: 1, rehydrated: true}, theme: {das: 2 }}, b: {_persist: {version: 1, rehydrated: true}}}, 'a', {a: {_persist: {version: 1, rehydrated: true}}, b: {_persist: {version: 1, rehydrated: true}}})
+export interface Transform<S = {[key: string]: object}, RS = {[K in keyof S]: object}> {
+  in: TransformInbound<S>;
+  out: TransformOutbound<S, RS>;
+}
+
+type l = "noe" | "noe2" extends string? true: false;
 
 export type RehydrateErrorType = any;
 
