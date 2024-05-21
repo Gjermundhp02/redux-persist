@@ -13,9 +13,13 @@ export type PersistedState = {
   _persist: PersistState;
 };
 
-export type State<S = {[key: string]: object}> = {
+export type State<S> = {
     [K in keyof S]: S[K]&PersistedState;
 }
+
+export type Deserialize<S> = (x: any) => State<S>; // TODO: Add generic for argument type
+
+export type Serialize<S> = (x: State<S>) => any; // TODO: Add generic for return type
 
 export type PersistMigrate =
   (state: PersistedState, currentVersion: number) => Promise<PersistedState>;
@@ -53,7 +57,7 @@ export interface PersistConfig<S = {[key: string]: object}, RS = {[K in keyof S]
   keyPrefix?: string;
   blacklist?: Array<string>;
   whitelist?: Array<string>;
-  transforms?: Array<Transform<S, RS>>;
+  transforms?: Array<Transform<any, any>>; // Unknown because the transfoms use different types
   throttle?: number;
   migrate?: PersistMigrate;
   stateReconciler?: false | StateReconciler<S>;
@@ -74,14 +78,14 @@ export interface PersistorOptions {
 }
 
 export interface Storage<S, RS> {
-  getItem<K extends keyof KeyAccessState<RS>>(key: K, ...args: Array<unknown>): Promise<KeyAccessState<RS>[K] | undefined>;
-  setItem<K extends keyof KeyAccessState<S>>(key: K, value: KeyAccessState<S>[K], ...args: Array<unknown>): Promise<void>;
+  getItem<K extends keyof KeyAccessState<RS>>(key: K, ...args: Array<unknown>): Promise<ReturnType<Serialize<RS>> | undefined>;
+  setItem<K extends keyof ReturnType<Serialize<RS>>>(key: K, value: ReturnType<Serialize<RS>>, ...args: Array<unknown>): Promise<void>;
   removeItem<K extends keyof RS>(key: K, ...args: Array<unknown>): Promise<void>;
   keys?: Array<string>;
   getAllKeys(cb?: any): Promise<unknown>;
 }
 
-export interface WebStorage<S> extends Storage<S> {
+export interface WebStorage<S, RS> extends Storage<S, RS> {
   /**
    * @desc Fetches key and returns item in a promise.
    */
@@ -97,38 +101,28 @@ export interface WebStorage<S> extends Storage<S> {
 }
 
 export interface MigrationManifest<S> {
-  [key: string]: (state: S & PersistedState) => S & PersistedState;
+  [key: string]: (state: State<S>) => State<S>;
 }
 
+export type ExactKeys<T, U> = {
+    [K in keyof U]: K extends keyof T ? unknown : never;
+};
 /**
  * @desc
- * `SS` means SubState
- * `ESS` means EndSubState
- * `S` means State
+ * `S` means State, the state redux uses
+ * `RS` means RawState, the state stored in the storage	
  */
-export type TransformInbound<SS, ESS, S = any> =
-  (subState: SS, key: keyof S, state: S) => ESS;
+export type TransformInbound<S extends { [key: string]: object }, RS extends ExactKeys<S, RS>> =
+  (subState: State<S>[keyof S], key?: keyof S, state?: S) => State<RS>[Extract<keyof RS, keyof S>];
 
-/**
- * @desc
- * From storage to state
- * `SS` means SubState
- * `HSS` means HydratedSubState
- * `RS` means RawState
- */
-export type TransformOutbound<S extends {[key: string]: extendsobject}, RS = {[K in keyof S]: object}> =
-  (state: State<RS>, key: keyof RS, rawState: State<RS>) => State<S>[keyof RS];
+export type TransformOutbound<S extends { [key: string]: object }, RS extends ExactKeys<S, RS>> =
+  (subState: State<RS>[keyof RS], key?: keyof RS, rawState?: State<RS>) => State<S>[Extract<keyof S, keyof RS>];
 
-const r: TransformOutbound = (state, key, rawState) => {
-    return state[key];
-}
-r({a: {_persist: {version: 1, rehydrated: true}, theme: {das: 2 }}, b: {_persist: {version: 1, rehydrated: true}}}, 'a', {a: {_persist: {version: 1, rehydrated: true}}, b: {_persist: {version: 1, rehydrated: true}}})
-export interface Transform<S = {[key: string]: object}, RS = {[K in keyof S]: object}> {
-  in: TransformInbound<S>;
+
+export interface Transform<S extends {[key: string]: object}, RS extends {[K in keyof S]: object} & ExactKeys<S, RS>> {
+  in: TransformInbound<S, RS>;
   out: TransformOutbound<S, RS>;
 }
-
-type l = "noe" | "noe2" extends string? true: false;
 
 export type RehydrateErrorType = any;
 
