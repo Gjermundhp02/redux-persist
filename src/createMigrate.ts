@@ -8,7 +8,7 @@ export default function createMigrate<S>(
   config?: { debug: boolean }
 ): (state: PersistedState, currentVersion: number) => Promise<PersistedState> {
   const { debug } = config || {}
-  return function(
+  return async function (
     state: PersistedState,
     currentVersion: number
   ): Promise<PersistedState> {
@@ -26,7 +26,7 @@ export default function createMigrate<S>(
     if (inboundVersion === currentVersion) {
       if (process.env.NODE_ENV !== 'production' && debug)
         console.log('redux-persist: versions match, noop migration')
-      return Promise.resolve(state)
+      return state
     }
     if (inboundVersion > currentVersion) {
       if (process.env.NODE_ENV !== 'production')
@@ -41,18 +41,17 @@ export default function createMigrate<S>(
 
     if (process.env.NODE_ENV !== 'production' && debug)
       console.log('redux-persist: migrationKeys', migrationKeys)
-    try {
-      const migratedState: any = migrationKeys.reduce((state: any, versionKey) => {
-        if (process.env.NODE_ENV !== 'production' && debug)
-          console.log(
-            'redux-persist: running migration for versionKey',
-            versionKey
-          )
-        return migrations[versionKey](state)
-      }, state)
-      return Promise.resolve(migratedState)
-    } catch (err) {
-      return Promise.reject(err)
+    let migratedState: any = state
+
+    for (const versionKey of migrationKeys) {
+      if (process.env.NODE_ENV !== 'production' && debug)
+        console.log(
+          'redux-persist: running migration for versionKey',
+          versionKey
+        )
+      migratedState = await migrations[versionKey](migratedState)
     }
+
+    return migratedState
   }
 }

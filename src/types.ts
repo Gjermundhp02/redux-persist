@@ -105,7 +105,9 @@ export interface WebStorage<RS> extends Storage<RS> {
 }
 
 export interface MigrationManifest<S> {
-  [key: string]: (state: State<S>) => State<S>;
+  [key: string]:
+    | ((state: State<S>) => State<S>)
+    | ((state: State<S>) => Promise<State<S>>)
 }
 
 /**
