@@ -4,6 +4,9 @@ import { REHYDRATE, REGISTER } from './constants'
 
 import { StoreEnhancer } from "redux";
 
+export type ExactKeys<T, U> = {
+    [K in keyof U]: K extends keyof T ? unknown : never;
+};
 export interface PersistState {
     version: number;
     rehydrated: boolean;
@@ -21,11 +24,11 @@ export type Deserialize<S> = (x: any) => State<S>; // TODO: Add generic for argu
 
 export type Serialize<S> = (x: State<S>) => any; // TODO: Add generic for return type
 
-export type PersistMigrate =
-  (state: PersistedState, currentVersion: number) => Promise<PersistedState>;
+export type PersistMigrate<S> =
+  (state: State<S>, currentVersion: number) => Promise<State<S>>;
 
-export type StateReconciler<S> =
-  (inboundState: any, state: S, reducedState: S, config: PersistConfig<S>) => S;
+export type StateReconciler<S, RS> =
+  (inboundState: any, state: S, reducedState: S, config: PersistConfig<S, RS>) => S;
 
 // S is the reudx reducers/redux state
 export interface KeyAccessState<S> {
@@ -33,13 +36,14 @@ export interface KeyAccessState<S> {
 }
 
 // {
-//     key: {
-//         reducer-states: {
-//             _persist
-//             reducer:keys
-//         }
-//     } // A key that defines the spesific store
-
+//     version: { // The version of the store, one per version. Eg. if current version is 2, then 0, 1, 2 needs to be defined
+//         key: {// A key that defines the spesific store
+//             reducer-states: {
+                
+//             }
+//         } 
+//         _persist: number // Not added by the user
+//     }
 // }
 
 /**
@@ -47,9 +51,9 @@ export interface KeyAccessState<S> {
  * `S` means State, the state redux uses
  * `RS` means RawState, the state stored in the storage
  */
-export interface PersistConfig<S = {[key: string]: object}, RS = {[K in keyof S]: object}> {
+export interface PersistConfig<S extends { [key: string]: object }, RS extends ExactKeys<S, RS>> {
   version?: number;
-  storage: Storage<S, RS>;
+  storage: Storage<RS>;
   key: string;
   /**
    * @deprecated keyPrefix is going to be removed in v6.
@@ -59,12 +63,12 @@ export interface PersistConfig<S = {[key: string]: object}, RS = {[K in keyof S]
   whitelist?: Array<string>;
   transforms?: Array<Transform<any, any>>; // Unknown because the transfoms use different types
   throttle?: number;
-  migrate?: PersistMigrate;
-  stateReconciler?: false | StateReconciler<S>;
+  migrate?: PersistMigrate<S>; // What happens when it has to transform and migrate. The way to transform it in the last version might not work in the new version
+  stateReconciler?: false | StateReconciler<S, RS>;
   /**
    * @desc Used for migrations.
    */
-  getStoredState?: (config: PersistConfig<S, RS>) => Promise<State<S>>;
+  getStoredState?: (config: PersistConfig<S, RS>) => Promise<State<S> | void>; // Does not take into accont migration/versioned states
   debug?: boolean;
   serialize?: ((x: State<RS>) => any);
   deserialize?: ((x: any) => State<RS>);
@@ -77,7 +81,7 @@ export interface PersistorOptions {
   manualPersist?: boolean;
 }
 
-export interface Storage<S, RS> {
+export interface Storage<RS> {
   getItem<K extends keyof KeyAccessState<RS>>(key: K, ...args: Array<unknown>): Promise<ReturnType<Serialize<RS>> | undefined>;
   setItem<K extends keyof ReturnType<Serialize<RS>>>(key: K, value: ReturnType<Serialize<RS>>, ...args: Array<unknown>): Promise<void>;
   removeItem<K extends keyof RS>(key: K, ...args: Array<unknown>): Promise<void>;
@@ -85,7 +89,7 @@ export interface Storage<S, RS> {
   getAllKeys(cb?: any): Promise<unknown>;
 }
 
-export interface WebStorage<S, RS> extends Storage<S, RS> {
+export interface WebStorage<RS> extends Storage<RS> {
   /**
    * @desc Fetches key and returns item in a promise.
    */
@@ -104,9 +108,6 @@ export interface MigrationManifest<S> {
   [key: string]: (state: State<S>) => State<S>;
 }
 
-export type ExactKeys<T, U> = {
-    [K in keyof U]: K extends keyof T ? unknown : never;
-};
 /**
  * @desc
  * `S` means State, the state redux uses

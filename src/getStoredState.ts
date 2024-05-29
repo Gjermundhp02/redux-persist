@@ -5,7 +5,7 @@ import { KEY_PREFIX } from './constants'
 
 // S is the redux reducers/redux state
 // RS is the raw state stored in the storage
-export default function getStoredState<S extends {[key: string]: object}, RS extends {[K in keyof S]: object} & ExactKeys<S, RS>>(
+export default function getStoredState<S extends { [key: string]: object }, RS extends ExactKeys<S, RS> & ExactKeys<S, RS>>(
   config: PersistConfig<S, RS>
 ): Promise<State<S> | void> {
   const transforms = config.transforms || []
@@ -30,12 +30,7 @@ export default function getStoredState<S extends {[key: string]: object}, RS ext
                 subState[key] = transformer.out(subState[key], key, rawState)
             })
             return subState
-        }, rawState)
-        // (Object.keys(rawState) as Array<keyof State<S>>).forEach(key => { // Why is the transforms applied to one key at a time? They should transform the whole state so you have predictable states between transformers
-        //   state[key] = transforms.reduceRight((subState, transformer) => {
-        //     return transformer.out(subState, key, rawState)
-        //   }, deserialize(rawState[key])) // Why is rawstate being deserialized again?
-        // })
+        }, rawState as unknown as State<S>) // Used because the transformers does not returned same type
         return state
       } catch (err) {
         if (process.env.NODE_ENV !== 'production' && debug)

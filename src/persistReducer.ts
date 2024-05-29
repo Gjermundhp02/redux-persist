@@ -14,6 +14,7 @@ import {
 } from './constants'
 
 import type {
+    ExactKeys,
     KeyAccessState,
   PersistConfig,
   PersistState,
@@ -32,9 +33,9 @@ const DEFAULT_TIMEOUT = 5000
   - persisting a reducer which has nested _persist
   - handling actions that fire before reydrate is called
 */
-export default function persistReducer<S, A extends Action>(
-  config: PersistConfig<S>,
-  baseReducer: Reducer<S, A>
+export default function persistReducer<S extends { [key: string]: object }, RS extends ExactKeys<S, RS>>(
+  config: PersistConfig<S, RS>,
+  baseReducer: Reducer<S>
 ): Reducer<S & PersistPartial> {
   if (process.env.NODE_ENV !== 'production') {
     if (!config) throw new Error('config is required for persistReducer')
