@@ -111,7 +111,7 @@ export default function createPersistoid(config: PersistConfig<any>): Persistoid
   function passWhitelistBlacklist(key: string) {
     if (whitelist && whitelist.indexOf(key) === -1 && key !== '_persist')
       return false
-    if (blacklist && blacklist.indexOf(key) !== -1) return false
+    if (blacklist && blacklist.indexOf(key) !== -1) return false // The user can blacklist _persist?
     return true
   }
 

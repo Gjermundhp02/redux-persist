@@ -182,6 +182,8 @@ Redux persist ships with react integration as a convenience. The `PersistGate` c
 2. function children: The function will be invoked with a single `bootstrapped` argument. When bootstrapped is true, persistence is complete and it is safe to render the full app. This can be useful for adding transition animations.
 
 ## Blacklist & Whitelist
+If neither is specified all keys will be saved.<br>
+If both is specified blacklist takes precidence.<br>
 By Example:
 ```js
 // BLACKLIST
